@@ -1,9 +1,11 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import generic
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 
-from books.models import Book
-from books.forms import CommentForm
+from .models import Book
+from .forms import CommentForm, BookForm
 
 
 class BookListView(generic.ListView):
@@ -13,6 +15,7 @@ class BookListView(generic.ListView):
     template_name = 'books/book_list.html'
 
 
+@login_required(login_url='/accounts/login/')
 def book_detail(request, pk):
     book = get_object_or_404(Book, pk=pk)
     book_comment = book.comments.all()
@@ -35,19 +38,26 @@ def book_detail(request, pk):
     })
 
 
-class BookCreateView(generic.CreateView):
-    model = Book
-    template_name = 'books/book_create.html'
-    fields = ('title', 'author', 'description', 'price', 'cover')
+@login_required
+def book_create_view(request):
+    if request.method == 'POST':
+        book_form = BookForm(request.POST)
+        new_book = book_form.save(commit=False)
+        new_book.user = request.user
+        new_book.save()
+        return redirect(new_book)
+    else:
+        book_form = BookForm()
+    return render(request, 'books/book_create.html', {"form": book_form})
 
 
-class BookUpdateView(generic.UpdateView):
+class BookUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = Book
     fields = ('title', 'author', 'description', 'price', 'cover')
     template_name = 'books/book_update.html'
 
 
-class BookDeleteView(generic.DeleteView):
+class BookDeleteView(LoginRequiredMixin, generic.DeleteView):
     model = Book
     template_name = 'books/book_delete.html'
     success_url = reverse_lazy('book_list')

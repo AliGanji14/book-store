@@ -1,6 +1,12 @@
 from django import forms
 
-from .models import Comment
+from .models import Book, Comment
+
+
+class BookForm(forms.ModelForm):
+    class Meta:
+        model = Book
+        fields = ['title', 'description', 'price', 'cover']
 
 
 class CommentForm(forms.ModelForm):
